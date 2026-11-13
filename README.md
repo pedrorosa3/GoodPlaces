@@ -8,6 +8,7 @@
 
 ![Java](https://img.shields.io/badge/Java-17%2B-orange?logo=openjdk&logoColor=white)
 ![JavaFX](https://img.shields.io/badge/JavaFX-22-blue)
+![Docker](https://img.shields.io/badge/Docker-pronto-2496ED?logo=docker&logoColor=white)
 ![Eclipse](https://img.shields.io/badge/IDE-Eclipse-2C2255?logo=eclipseide&logoColor=white)
 ![FCUL](https://img.shields.io/badge/FCUL-ADS-green)
 
@@ -60,6 +61,8 @@ GoodPlaces/
 │   ├── services/       # Gestão de sessão
 │   ├── startup/        # Pontos de entrada (StartUp e TextClient)
 │   └── view/           # Vistas FXML, CSS e arranque JavaFX
+├── docker/run.sh            # Ponto de entrada do contentor (texto / gui)
+├── Dockerfile               # Imagem com JDK 17 + JavaFX 22
 ├── configuracao.properties  # Configuração do adaptador de alertas
 └── Relgrupo20.pdf           # Relatório do projeto
 ```
@@ -68,13 +71,54 @@ GoodPlaces/
 
 ## 🚀 Como executar
 
-### Pré-requisitos
+### 🐳 Opção recomendada — Docker
+
+A forma mais simples: só precisas do [Docker](https://www.docker.com/products/docker-desktop/). O JDK e o JavaFX são instalados dentro da imagem.
+
+```bash
+# Construir a imagem
+docker build -t goodplaces .
+
+# Correr o cliente de texto (executa os casos de uso na consola)
+docker run --rm goodplaces
+```
+
+<details>
+<summary><b>🖥️ Correr a interface gráfica (JavaFX) no Docker</b></summary>
+
+A interface gráfica precisa de um servidor X11 na máquina anfitriã.
+
+**Linux**
+
+```bash
+xhost +local:docker
+docker run --rm -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix goodplaces gui
+```
+
+**Windows** (com [VcXsrv](https://sourceforge.net/projects/vcxsrv/) aberto e a opção *Disable access control* ativa)
+
+```powershell
+docker run --rm -e DISPLAY=host.docker.internal:0.0 goodplaces gui
+```
+
+**macOS** (com [XQuartz](https://www.xquartz.org/) e *Allow connections from network clients* ativo)
+
+```bash
+xhost + 127.0.0.1
+docker run --rm -e DISPLAY=host.docker.internal:0 goodplaces gui
+```
+
+</details>
+
+### Execução local (sem Docker)
+
+#### Pré-requisitos
 
 - **JDK 17** ou superior
 - **JavaFX SDK 22** ([download](https://gluonhq.com/products/javafx/)), só necessário para a interface gráfica
 - *(Opcional)* **Eclipse IDE**
 
-### Opção 1 — Eclipse
+#### Opção 1 — Eclipse
 
 1. `File → Import → Existing Projects into Workspace` e escolher a pasta do repositório.
 2. Em `Project → Properties → Java Build Path → Libraries`, corrigir o caminho dos JARs do JavaFX para o local onde está instalado o SDK na tua máquina.
@@ -85,7 +129,7 @@ GoodPlaces/
 > Se a interface gráfica não arrancar, acrescenta em *Run Configurations → Arguments → VM arguments*:
 > `--module-path "C:\caminho\para\javafx-sdk-22\lib" --add-modules javafx.controls,javafx.fxml`
 
-### Opção 2 — Linha de comandos
+#### Opção 2 — Linha de comandos
 
 Na raiz do projeto (exemplo em PowerShell; ajusta `$FX` ao caminho do teu JavaFX SDK):
 
@@ -117,9 +161,14 @@ java --module-path $FX --add-modules javafx.controls,javafx.fxml -cp out startup
 O ficheiro `configuracao.properties` define para onde vão os alertas:
 
 ```properties
-alertaAdapter=SysOutAlertaAdapter   # alertas na consola
-# alertaAdapter=FileAlertaAdapter   # alertas escritos em ficheiro
+# Alertas na consola
+alertaAdapter=SysOutAlertaAdapter
+
+# Alertas escritos em ficheiro
+# alertaAdapter=FileAlertaAdapter
 ```
+
+> No Docker, este ficheiro é copiado para a imagem no momento do build. Depois de o alterares, volta a correr `docker build -t goodplaces .`.
 
 ---
 
